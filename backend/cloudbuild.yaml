@@ -1,0 +1,29 @@
+steps:
+# 파일 다운로드
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', 
+  "gs://ts-study-config/stock/.env.prod",
+  '.']
+
+# 도커 이미지 빌드
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', 
+  '-t', 'us.gcr.io/$PROJECT_ID/${_NAMESPACE}/${_APP_NAME}:${_CLOUDRUNSTAMP}' ,
+  '-t', 'us.gcr.io/$PROJECT_ID/${_NAMESPACE}/${_APP_NAME}:latest' ,
+  '.']
+
+# 빌드된 이미지를 kubernetes 에 배포
+- name: 'gcr.io/cloud-builders/kubectl'
+  args: ['set', 'image', 'deployments/${_APP_NAME}', '${_APP_NAME}=us.gcr.io/$PROJECT_ID/${_NAMESPACE}/${_APP_NAME}:${_CLOUDRUNSTAMP}' , '--namespace=${_NAMESPACE}']
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=${_ZONE}'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+
+# Log file 위치
+logsBucket: 'gs://${PROJECT_ID}_cloudbuild'
+
+# 빌드된 이미지를 registry 에 저장
+images: [
+  'us.gcr.io/$PROJECT_ID/${_NAMESPACE}/${_APP_NAME}:${_CLOUDRUNSTAMP}',
+  'us.gcr.io/$PROJECT_ID/${_NAMESPACE}/${_APP_NAME}:latest'
+]

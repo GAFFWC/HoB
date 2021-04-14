@@ -1,0 +1,85 @@
+# stock 배포
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: stock
+    namespace: default
+    labels:
+        app: stock
+spec:
+    # minReadySeconds: 5
+    replicas: 1
+    # revisionHistoryLimit: 5
+    selector:
+        matchLabels:
+            app: stock
+    template:
+        metadata:
+            labels:
+                app: stock
+        spec:
+            containers:
+                - name: stock
+                  image: us.gcr.io/typescript-study-2020-10-30/default/stock:latest
+                  # livenessProbe:
+                  #     failureThreshold: 3
+                  #     httpGet:
+                  #         httpHeaders:
+                  #             - name: Host
+                  #               value: hc.check
+                  #         path: /
+                  #         port: 80
+                  #         scheme: HTTP
+                  #     initialDelaySeconds: 10
+                  #     periodSeconds: 3
+                  #     successThreshold: 1
+                  #     timeoutSeconds: 1
+                  # readinessProbe:
+                  #     failureThreshold: 3
+                  #     httpGet:
+                  #         httpHeaders:
+                  #             - name: Host
+                  #               value: hc.check
+                  #         path: /
+                  #         port: 80
+                  #         scheme: HTTP
+                  #     periodSeconds: 3
+                  #     successThreshold: 1
+                  #     timeoutSeconds: 1
+                  imagePullPolicy: IfNotPresent
+                  env:
+                      - name: NODE_ENV
+                        value: prod
+                  #     - name: LANG
+                  #       value: ko_KR.UTF-8
+                  #     - name: TZ
+                  #       value: Asia/Seoul
+            # affinity:
+            #     nodeAffinity:
+            #         preferredDuringSchedulingIgnoredDuringExecution:
+            #             - weight: 100
+            #               preference:
+            #                   matchExpressions:
+            #                       - key: app
+            #                         operator: In
+            #                         values:
+            #                             - stock
+---
+# stock Expose
+apiVersion: v1
+kind: Service
+metadata:
+    name: stock
+    namespace: default
+    labels:
+        app: stock
+spec:
+    clusterIP: 10.3.205.72
+    externalTrafficPolicy: Cluster
+    ports:
+        - protocol: TCP
+          port: 3000
+          nodePort: 30000
+    selector:
+        app: stock
+    type: NodePort
