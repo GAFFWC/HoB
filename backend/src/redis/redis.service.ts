@@ -3,7 +3,7 @@ import { ClientRedis } from '@nestjs/microservices';
 import { IsString } from 'class-validator';
 import { Subject } from 'rxjs';
 import { promisify } from 'util';
-@Injectable({})
+@Injectable()
 export class RedisService {
     constructor(@Inject('redis') private readonly redis: ClientRedis) {}
 

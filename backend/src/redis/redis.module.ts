@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as Joi from 'joi';
+import { RedisService } from './redis.service';
 
 @Module({
     imports: [
@@ -26,6 +27,7 @@ import * as Joi from 'joi';
             },
         ]),
     ],
-    providers: [],
+    exports: [RedisModule, RedisService],
+    providers: [RedisService],
 })
 export class RedisModule {}
