@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as Joi from 'joi';
 import { BinanceModule } from './binance/binance.module';
@@ -36,6 +37,7 @@ import { WebsocketModule } from './websocket/websocket.module';
             logging: true,
             entities: [__dirname + '*/entity/*{.ts}'],
         }),
+        ScheduleModule.forRoot(),
         UpbitModule,
         RedisModule,
         WebsocketModule,
