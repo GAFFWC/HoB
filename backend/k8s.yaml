@@ -2,25 +2,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: stock
+    name: hob-backend
     namespace: default
     labels:
-        app: stock
+        app: hob-backend
 spec:
     # minReadySeconds: 5
     replicas: 1
     # revisionHistoryLimit: 5
     selector:
         matchLabels:
-            app: stock
+            app: hob-backend
     template:
         metadata:
             labels:
-                app: stock
+                app: hob-backend
         spec:
             containers:
-                - name: stock
-                  image: us.gcr.io/typescript-study-2020-10-30/default/stock:latest
+                - name: hob-backend
+                  image: us.gcr.io/typescript-study-2020-10-30/default/hob-backend:latest
                   # livenessProbe:
                   #     failureThreshold: 3
                   #     httpGet:
