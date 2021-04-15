@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import Joi from 'joi';
+import * as Joi from 'joi';
 import { BinanceModule } from './binance/binance.module';
 import { RedisModule } from './redis/redis.module';
 import { UpbitModule } from './upbit/upbit.module';
