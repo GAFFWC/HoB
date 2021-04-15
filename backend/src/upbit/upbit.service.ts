@@ -9,5 +9,7 @@ export class UpbitService {
     @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { timeZone: 'Asia/Seoul' })
     async init() {}
 
-    async getCoins(@Tokenize() payload: any) {}
+    async getCoins(@Tokenize() payload: any) {
+        
+    }
 }

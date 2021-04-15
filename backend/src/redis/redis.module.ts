@@ -2,11 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import Joi from 'joi';
+import * as Joi from 'joi';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature(),
         ConfigModule.forRoot({
             isGlobal: true,
             envFilePath: process.env.NODE_ENV === 'prod' ? '.env.prod' : '.env.dev',
