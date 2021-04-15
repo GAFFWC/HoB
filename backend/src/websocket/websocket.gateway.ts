@@ -26,11 +26,13 @@ export class WebSocketIOGateway implements OnGatewayConnection, OnGatewayDisconn
 
     handleConnection(@ConnectedSocket() client: Socket) {
         console.log('connect');
+        console.log(client);
     }
 
     handleDisconnect() {
         console.log('disconnect');
     }
+
     @SubscribeMessage('open')
     get(@ConnectedSocket() client: Socket, @MessageBody() data: string): Observable<WsResponse<string>> {
         return from(['1', '2', '3']).pipe(map((item) => ({ event: 'UPBIT_ALL', data: item })));
