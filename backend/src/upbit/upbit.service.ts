@@ -1,10 +1,13 @@
 import { HttpService, Inject, Injectable, ParseIntPipe, UsePipes } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConnectedSocket } from '@nestjs/websockets';
+import { Socket } from 'socket.io';
 import { RedisExpression } from 'src/redis/constant/constant.enum';
 import { RedisService } from 'src/redis/redis.service';
 import { MoneyExpression } from './constant/constant.enum';
+import { PriceDTO } from './dto/price.dto';
 import { TokenizePipe } from './pipe/tokenize.pipe';
-
+import * as ws from 'ws';
 @Injectable()
 export class UpbitService {
     constructor(
@@ -14,11 +17,10 @@ export class UpbitService {
 
     private baseUrl = 'https://api.upbit.com/v1';
 
-    @Cron(CronExpression.EVERY_SECOND)
-    async init() {
+    async getSymbols(): Promise<string[]> {
         try {
-            const symbols = await this.http
-                .get(this.baseUrl + '/market/all', new TokenizePipe().transform({}))
+            return await this.http
+                .get(this.baseUrl + '/market/all')
                 .toPromise()
                 .then((r) => {
                     return r.data
@@ -29,21 +31,33 @@ export class UpbitService {
                             return c.market;
                         });
                 });
-
-            let krw = [];
-            let btc = [];
-
-            symbols.forEach((s: string) => {
-                s.startsWith(MoneyExpression.KRW) ? krw.push(s) : btc.push(s);
-            });
-
-            await this.redisService.lset(RedisExpression.SYMBOLS_KRW, krw);
-            await this.redisService.lset(RedisExpression.SYMBOLS_BTC, btc);
-
-            console.log(await this.redisService.lrange(RedisExpression.SYMBOLS_KRW, 0, -1));
-            console.log(await this.redisService.lrange(RedisExpression.SYMBOLS_BTC, 0, -1));
         } catch (err) {
             console.error(err);
+        }
+    }
+
+    async getPrice(symbols: string[]): Promise<PriceDTO[]> {
+        try {
+            return await this.http
+                .get(this.baseUrl + `/ticker?markets=${symbols.join(',')}`)
+                .toPromise()
+                .then((r) => {
+                    return r.data.map((c) => {
+                        const newPrice = new PriceDTO();
+
+                        newPrice.market = c.market;
+                        newPrice.open = c.opening_price;
+                        newPrice.high = c.high_price;
+                        newPrice.low = c.low_price;
+                        newPrice.now = c.trade_price;
+                        newPrice.yesterday = c.prev_closing_price;
+                        newPrice.accTradePrice = c.acc_trade_price_24h;
+
+                        return newPrice;
+                    });
+                });
+        } catch (err) {
+            console.error(err.response.data);
         }
     }
 }
