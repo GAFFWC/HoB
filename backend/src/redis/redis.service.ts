@@ -37,7 +37,7 @@ export class RedisService {
         }
     }
 
-    async lset(key: string, values: any[]): Promise<boolean> {
+    async lpush(key: string, values: any[]): Promise<boolean> {
         const lpushAsync = promisify(this.client.lpush).bind(this.client);
 
         try {
@@ -69,6 +69,7 @@ export class RedisService {
 
         try {
             await delAsync(key);
+
             return true;
         } catch (err) {
             console.error(err);
