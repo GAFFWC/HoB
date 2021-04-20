@@ -13,8 +13,10 @@ export class TokenizePipe implements PipeTransform {
         };
 
         const hash = crypto.createHash('sha512');
-        if (data.params) {
-            payload['query_hash'] = hash.update(querystring.encode(data.params), 'utf-8').digest('hex');
+
+        if (Object.keys(data).length) {
+            const query = querystring.encode(data);
+            payload['query_hash'] = hash.update(query, 'utf-8').digest('hex');
             payload['query_hash_alg'] = 'SHA512';
         }
 
@@ -22,7 +24,7 @@ export class TokenizePipe implements PipeTransform {
             headers: {
                 Authorization: `Bearer ${jwt.sign(payload, process.env.UPBIT_SECRET_KEY)}`,
             },
-            data: payload,
+            query: payload,
         };
     }
 }
