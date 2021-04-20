@@ -5,6 +5,7 @@ import { UpbitService } from './upbit.service';
 
 @Module({
     imports: [RedisModule, HttpModule],
+    exports: [UpbitModule, UpbitService],
     providers: [UpbitService],
 })
 export class UpbitModule {}
