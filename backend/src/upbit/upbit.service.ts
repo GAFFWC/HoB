@@ -5,15 +5,12 @@ import { Socket } from 'socket.io';
 import { RedisExpression } from 'src/redis/constant/constant.enum';
 import { RedisService } from 'src/redis/redis.service';
 import { MoneyExpression } from './constant/constant.enum';
-import { PriceDTO } from './dto/price.dto';
+import { UpbitPriceDTO } from './dto/price.dto';
 import { TokenizePipe } from './pipe/tokenize.pipe';
 import * as ws from 'ws';
 @Injectable()
 export class UpbitService {
-    constructor(
-        @Inject(HttpService) private readonly http: HttpService,
-        @Inject(RedisService) private readonly redisService: RedisService,
-    ) {}
+    constructor(@Inject(HttpService) private readonly http: HttpService, @Inject(RedisService) private readonly redisService: RedisService) {}
 
     private baseUrl = 'https://api.upbit.com/v1';
 
@@ -25,7 +22,7 @@ export class UpbitService {
                 .then((r) => {
                     return r.data
                         .filter((c: any) => {
-                            return !String(c.market).startsWith(MoneyExpression.USDT);
+                            return String(c.market).startsWith(MoneyExpression.KRW);
                         })
                         .map((c: any) => {
                             return c.market;
@@ -36,14 +33,15 @@ export class UpbitService {
         }
     }
 
-    async getPrice(symbols: string[]): Promise<PriceDTO[]> {
+    async getPrice(symbols: string[]): Promise<object> {
         try {
             return await this.http
                 .get(this.baseUrl + `/ticker?markets=${symbols.join(',')}`)
                 .toPromise()
                 .then((r) => {
-                    return r.data.map((c) => {
-                        const newPrice = new PriceDTO();
+                    const newPriceInfo = {};
+                    r.data.forEach((c) => {
+                        const newPrice = new UpbitPriceDTO();
 
                         newPrice.market = c.market;
                         newPrice.open = c.opening_price;
@@ -53,8 +51,10 @@ export class UpbitService {
                         newPrice.yesterday = c.prev_closing_price;
                         newPrice.accTradePrice = c.acc_trade_price_24h;
 
-                        return newPrice;
+                        newPriceInfo[`${newPrice.market}`] = newPrice;
                     });
+
+                    return newPriceInfo;
                 });
         } catch (err) {
             console.error(err.response.data);
