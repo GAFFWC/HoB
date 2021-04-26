@@ -14,80 +14,120 @@ import SocketIO, { Server, Socket } from 'socket.io';
 import { map } from 'rxjs/operators';
 import { Inject, Injectable } from '@nestjs/common';
 import { WebsocketService } from './websocket.service';
-import { PriceDTO } from 'src/upbit/dto/price.dto';
+import { UpbitPriceDTO } from 'src/upbit/dto/price.dto';
 import { RedisService } from 'src/redis/redis.service';
 import { RedisExpression } from 'src/redis/constant/constant.enum';
 import { Cron, CronExpression, Interval } from '@nestjs/schedule';
 import { UpbitService } from 'src/upbit/upbit.service';
+import { IntervalExpression, PriceCheckDTO, SymbolsDTO } from 'src/dto/websocket.dto';
+import { BinanceService } from 'src/binance/binance.service';
+import { BinanceModule } from 'src/binance/binance.module';
 
 @WebSocketGateway(4000)
 export class WebSocketIOGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     constructor(
         @Inject(UpbitService) private readonly upbitService: UpbitService,
-        @Inject(RedisService) private readonly redisService: RedisService,
+        @Inject(BinanceService) private readonly binanceService: BinanceService,
     ) {}
 
-    private priceGetting = false;
-    private symbols = [];
-    private oldPrice = {};
-    private clientsCnt = 0;
+    private upbitGetting = false;
+    private binanceGetting = false;
+
+    private symbols = new SymbolsDTO();
+    private oldPrice = new PriceCheckDTO();
+
+    private clients = 0;
 
     @WebSocketServer()
     server: Server;
 
     @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { timeZone: 'Asia/Seoul' })
     async init() {
-        this.symbols = await this.upbitService.getSymbols();
-        this.oldPrice = {};
+        this.symbols.upbit = await this.upbitService.getSymbols();
     }
 
     afterInit() {
         console.log('WebSocket Initialization Complete!');
+        this.oldPrice = new PriceCheckDTO();
+        this.symbols = new SymbolsDTO();
+
+        this.symbols.upbit = [];
+        this.oldPrice.upbit = {};
+        this.oldPrice.binance = {};
     }
 
     async handleConnection(@ConnectedSocket() client: Socket) {
-        this.clientsCnt++;
+        this.clients++;
         console.log('New Connection!');
         return await this.init();
     }
 
     handleDisconnect() {
-        this.clientsCnt--;
+        this.clients--;
         console.log('Disconnected');
     }
 
-    @Interval(200)
-    async price() {
+    @Interval(IntervalExpression.UPBIT)
+    async upbit() {
         try {
-            const start = new Date().getTime();
-
-            if (!this.clientsCnt || this.priceGetting) {
+            if (!this.clients || this.upbitGetting) {
                 return;
             }
 
-            this.priceGetting = true;
+            this.upbitGetting = true;
 
-            if (!this.symbols.length) {
+            if (!this.symbols.upbit.length) {
                 await this.init();
             }
 
-            const price = await this.upbitService.getPrice(this.symbols);
+            const upbitPrice = await this.upbitService.getPrice(this.symbols.upbit);
 
-            const newPrice = price.filter((p) => {
-                if (!this.oldPrice[`${p.market}`] || this.oldPrice[`${p.market}`] != p.now) {
-                    this.oldPrice[`${p.market}`] = p.now;
-                    return p;
+            const newUpbitPrice = {};
+
+            Object.keys(upbitPrice).forEach((market: string) => {
+                if (!this.oldPrice.upbit[`${market}`] || this.oldPrice.upbit[`${market}`] != upbitPrice[`${market}`].now) {
+                    this.oldPrice.upbit[`${market}`] = upbitPrice[`${market}`].now;
+                    newUpbitPrice[`${market.split('-')[1]}`] = upbitPrice[`${market}`];
                 }
             });
 
-            this.priceGetting = false;
+            // console.log(Object.keys(newUpbitPrice));
+            this.server.clients().emit('upbit', newUpbitPrice);
 
-            const end = new Date().getTime();
+            this.upbitGetting = false;
+        } catch (err) {
+            console.error(err);
+        }
+    }
 
-            console.log(`${newPrice.length} : ${end - start} ms`);
+    @Interval(IntervalExpression.BINANCE)
+    async binance() {
+        try {
+            if (!this.clients || this.binanceGetting) {
+                return;
+            }
 
-            this.server.clients().emit('price', newPrice);
-            return;
+            if (!this.symbols.upbit.length) {
+                await this.init();
+            }
+
+            this.binanceGetting = true;
+
+            const binancePrice = await this.binanceService.getPrice();
+
+            const newBinancePrice = {};
+
+            Object.keys(binancePrice).forEach((market: string) => {
+                if (!this.oldPrice.binance[`${market}`] || this.oldPrice.binance[`${market}`] != binancePrice[`${market}`].now) {
+                    this.oldPrice.binance[`${market}`] = binancePrice[`${market}`].now;
+                    newBinancePrice[`${market}`] = binancePrice[`${market}`];
+                }
+            });
+
+            console.log(Object.keys(newBinancePrice).length);
+            this.server.clients().emit('binance', newBinancePrice);
+
+            this.binanceGetting = false;
         } catch (err) {
             console.error(err);
         }
