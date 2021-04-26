@@ -39,6 +39,7 @@ import { WebsocketModule } from './websocket/websocket.module';
         }),
         ScheduleModule.forRoot(),
         UpbitModule,
+        BinanceModule,
         RedisModule,
         WebsocketModule,
     ],
