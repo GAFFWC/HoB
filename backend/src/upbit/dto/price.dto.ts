@@ -1,4 +1,4 @@
-export class PriceDTO {
+export class UpbitPriceDTO {
     market: string;
     open: number;
     high: number;
@@ -6,9 +6,4 @@ export class PriceDTO {
     now: number;
     yesterday: number;
     accTradePrice: number;
-}
-
-export class PriceSetDTO {
-    krw: PriceDTO[];
-    btc: PriceDTO[];
 }
